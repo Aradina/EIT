@@ -8,9 +8,10 @@ from design import Ui_MainWindow
 from esipy import EsiClient, App
 from json import loads
 from sys import argv
-from PyQt5.QtWidgets import QMessageBox, QApplication, QMainWindow
+from PyQt5.QtWidgets import QMessageBox, QApplication, QMainWindow, QTableWidgetItem
 from PyQt5.QtGui import QPixmap
 from urllib import request
+from datetime import datetime
 
 esiApp = App.create('https://esi.tech.ccp.is/latest/swagger.json?datasource=tranquility') # this establishes the ESI connection.
 esi_client = EsiClient()
@@ -89,7 +90,66 @@ class esiFunction():
             pixmapAlliance.loadFromData(allianceurl)
             self.ui.allianceLogo.setPixmap(pixmapAlliance)
             self.ui.allianceLogo_2.setPixmap(pixmapAlliance)
+        
+        
+        with request.urlopen("https://zkillboard.com/api/stats/characterID/{}/".format( charID )) as zkillUrl:
+            zkillData = loads(zkillUrl.read().decode())
+            utcTime = datetime.utcnow()
+            utcTime = str(utcTime.year) + '0' + str(utcTime.month)
+            shipsDestroyed = zkillData['shipsDestroyed']
+            iskDestroyed = zkillData['iskDestroyed']
+            shipsLost = zkillData['shipsLost']
+            iskLost = zkillData['iskLost']
+            pointsLost = zkillData['pointsLost']
+            pointsDestroyed = zkillData['pointsDestroyed']
+            soloKills = zkillData['soloKills']
+            activepvp = zkillData['activepvp']
+            thisMonth = zkillData['months']
             
+            if utcTime in thisMonth:
+                thisMonth = thisMonth[utcTime]
+                if 'shipsDestroyed' in thisMonth:
+                    monthlyKills = thisMonth['shipsDestroyed']
+                    #monthlyPoints = thisMonth['pointsDestroyed']
+                    #monthlyIsk = thisMonth['iskDestroyed']
+                    self.ui.tableWidget.setItem(3,0, QTableWidgetItem(str(monthlyKills)))
+
+                if 'shipsLost' in thisMonth:
+                    monthlyLost = thisMonth['shipsLost']
+                    #monthlyPointLoss = thisMonth['pointsLost']
+                    #monthlyIskLoss = thisMonth['iskLost']
+                    self.ui.tableWidget.setItem(3,1, QTableWidgetItem(str(monthlyLost)))
+                    
+            if 'kills' in activepvp: 
+                recentKills = activepvp['kills']['count']
+                self.ui.tableWidget.setItem(2,0, QTableWidgetItem(str(recentKills)))
+            
+            if shipsDestroyed > 0:
+                danger = (shipsDestroyed + pointsDestroyed) / (pointsDestroyed + shipsDestroyed + pointsLost + shipsLost)
+                danger = danger * 100
+                danger = round(danger)
+                
+            else: 
+                danger = '1%'
+            
+            if soloKills > 0:
+                gangs = soloKills / shipsDestroyed
+                gangs = 1 - gangs
+                gangs = gangs * 100
+                gangs = round(gangs)
+                
+            else:
+                gangs = '1%'
+            
+            self.ui.solo.setValue(gangs)
+            self.ui.snuggly.setValue(danger)
+            print('Kills: '+str(shipsDestroyed))
+            self.ui.tableWidget.setItem(0,0, QTableWidgetItem(str(shipsDestroyed)))
+            print('Losses: '+str(shipsLost))
+            self.ui.tableWidget.setItem(0,1, QTableWidgetItem(str(shipsLost)))
+            self.ui.tableWidget.setItem(1,0, QTableWidgetItem(str('{:,}'.format(iskDestroyed))))
+            self.ui.tableWidget.setItem(1,1, QTableWidgetItem(str('{:,}'.format(iskLost))))
+
         charimgURL = "https://imageserver.eveonline.com/Character/{}_128.jpg".format( charID )
         charurl = request.urlopen(charimgURL).read()
         pixmapChar = QPixmap()
