@@ -13,7 +13,7 @@ from PyQt5.QtGui import QPixmap
 from urllib import request
 from datetime import datetime
 
-esiApp = App.create('https://esi.tech.ccp.is/latest/swagger.json?datasource=tranquility') # this establishes the ESI connection.
+esiApp = App.create('https://esi.evetech.net/latest/swagger.json?datasource=tranquility') # this establishes the ESI connection.
 esi_client = EsiClient()
 
 class eitMain(QMainWindow):
